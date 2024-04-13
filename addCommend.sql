@@ -20,18 +20,20 @@ VALUES
 ('2303', '聯電'),
 ('2308', '台達電'),
 ('0056', '元大高股息'),
-('006208', '富邦台50'),
-('00878', '國泰永續高股息');
+('006208', '富邦台50');
 
 CREATE TABLE MYSTOCK (
     id INT AUTO_INCREMENT PRIMARY KEY,
     stockID VARCHAR(255),
     amount INT NOT NULL,
-    price DECIMAL(10, 2) NOT NULL
+    price DECIMAL(10, 2) NOT NULL,
+    buytime VARCHAR(255),
+    reason VARCHAR(255)
 );
-INSERT INTO MYSTOCK (stockID, amount, price)
+INSERT INTO MYSTOCK (stockID, amount, price, buytime, reason)
 VALUES
-('2330', '5000', '750');
+('2330', '5000', '750', '0', '測試'),
+('2308', '4750', '100', '0', '測試');
 
 CREATE TABLE MYDATA (
     name VARCHAR(255) PRIMARY KEY,

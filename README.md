@@ -6,9 +6,9 @@ stockID name
 股票 id, 股票名稱
 
 ### MYSTOCK (目前持有的股票紀錄)
-id stockID amount price
+id stockID amount price, buytime, reason
 
-獨一無二的 id, 股票 id, 購買的總金額數, 購買的單股價格
+獨一無二的 id, 股票 id, 購買的總金額數, 購買的單股價格, 購買的時間, 購買的原因
 
 ### MYDATA (使用者資料)
 name, money
