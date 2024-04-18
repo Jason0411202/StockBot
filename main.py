@@ -34,12 +34,8 @@ def AlterMyMoney(conn, newMoney):
     conn.commit() # 提交 SQL 更新
     cursor.close() # 關閉 cursor
 
-def GetStockPrice(stock_id): # 回傳今日股價
-    stock = twstock.Stock(stock_id) # 建立 Stock 物件
-    stockPrice = stock.price # 取得股價
-
-    # 回傳最後一個欄位
-    return stockPrice[-1]
+def GetStockPrice(stock_id, allInfo): # 回傳今日股價
+    return allInfo[stock_id]['realtime']['latest_trade_price']
 
 def CheckStockBuyTime(conn, stock_id): # 檢查是否在過去一個禮拜內買過
     nowTime=time.time()
@@ -55,13 +51,13 @@ def CheckStockBuyTime(conn, stock_id): # 檢查是否在過去一個禮拜內買
     return 0
         
 
-def Buy(conn, stock_id, reason):
+def Buy(conn, allInfo, stock_id, reason):
 
     if CheckStockBuyTime(conn, stock_id) == 1: # 過去一個禮拜內買過了
         return # 暫時不買
 
     myMoney=CheckMyMoney(conn) # 呼叫 CheckMyMoney 函式
-    stockPrice=GetStockPrice(stock_id) # 呼叫 GetStockPrice 函式
+    stockPrice=GetStockPrice(stock_id, allInfo) # 呼叫 GetStockPrice 函式
     cursor = conn.cursor() # 建立 cursor 物件
 
     insertCommand = "INSERT INTO MYSTOCK (stockID, amount, price, buytime, reason) VALUES (%s, %s, %s, %s, %s)"
@@ -77,7 +73,7 @@ def Buy(conn, stock_id, reason):
     # 關閉 cursor
     cursor.close()
 
-def Sell(conn, stock_id, reason):
+def Sell(conn, allInfo, stock_id, reason):
     myMoney=CheckMyMoney(conn) # 呼叫 CheckMyMoney 函式
     cursor = conn.cursor() # 建立 cursor 物件
 
@@ -93,7 +89,7 @@ def Sell(conn, stock_id, reason):
     for row in rows:
         amount=row[0]
         buyPrice=row[1]
-        sellPrice=GetStockPrice(stock_id)
+        sellPrice=GetStockPrice(stock_id, allInfo)
         profit=(float(sellPrice)/float(buyPrice))*float(amount) - float(amount) # 計算損益
         profitRate=(float(sellPrice)/float(buyPrice))-1 # 計算損益率
         print("股號:", stock_id, ", 買入價格:", buyPrice, ", 賣出價格:", sellPrice, ", 已實現損益:", profit, ", 已實現損益率:", profitRate*100, "%", ", 賣出原因:", reason)
@@ -107,7 +103,7 @@ def Sell(conn, stock_id, reason):
 
     AlterMyMoney(conn, myMoney+final_profit) # 呼叫 AlterMyMoney 函式
 
-def Check(conn):
+def Check(conn, allInfo):
     cursor = conn.cursor() # 建立 cursor 物件
     cursor.execute("SELECT * FROM MYSTOCK") # 執行 SQL 查詢
     rows = cursor.fetchall() # 擷取所有的資料
@@ -119,14 +115,28 @@ def Check(conn):
             amount=row[2]
             buyPrice=row[3]
             reason=row[5]
-            sellPrice=GetStockPrice(stock_id)
+            sellPrice=GetStockPrice(stock_id, allInfo)
             profit=(float(sellPrice)/float(buyPrice))*float(amount) - float(amount) # 計算損益
             profitRate=(float(sellPrice)/float(buyPrice))-1 # 計算損益率
             print("股號:", stock_id, ", 買入價格:", buyPrice, ", 當前價格:", sellPrice, ", 購買的總金額數:", amount, ", 未實現損益:", profit, ", 未實現損益率:", profitRate*100, "%", ", 購入原因:", reason)
         except Exception as e:
             print(e)
 
+def RealTime_GET():
+    cursor = conn.cursor() # 建立 cursor 物件
+    cursor.execute("SELECT stockID FROM STOCK") # 執行 SQL 查詢
+    rows = cursor.fetchall() # 擷取所有的資料
+
+    stockID_list = []
+    for row in rows:
+        stockID_list.append(row[0])
+    
+    return twstock.realtime.get(stockID_list)
+
 def MainProcess(conn):
+    allInfo=RealTime_GET()
+    print(allInfo)
+
     cursor = conn.cursor() # 建立 cursor 物件
     cursor.execute("SELECT * FROM STOCK") # 執行 SQL 查詢
     rows = cursor.fetchall() # 擷取所有的資料
@@ -134,10 +144,9 @@ def MainProcess(conn):
         try:
             stock = twstock.Stock(str(row[0])) # 建立 Stock 物件
             bfp = twstock.BestFourPoint(stock) # 建立 BestFourPoint 物件
-            result, reason = bfp.best_four_point() # 取得最佳四大買點
-            if not result: # 如果符合最佳四大買點
-                #print(row[0], result, reason) # 輸出股票代號、是否符合最佳四大買點、原因
-                Sell(conn, row[0], reason) # 呼叫 Sell 函式
+            result, reason = bfp.best_four_point() # 取得最佳四大買賣點 (以上次收盤時的資料為準)
+            if not result: # 如果符合最佳四大買賣點
+                Sell(conn, allInfo, row[0], reason) # 呼叫 Sell 函式
                 print("\n")
 
         except Exception as e:
@@ -147,17 +156,16 @@ def MainProcess(conn):
         try:
             stock = twstock.Stock(str(row[0])) # 建立 Stock 物件
             bfp = twstock.BestFourPoint(stock) # 建立 BestFourPoint 物件
-            result, reason = bfp.best_four_point() # 取得最佳四大買點
-            if result: # 如果符合最佳四大買點
-                #print(row[0], result, reason) # 輸出股票代號、是否符合最佳四大買點、原因
-                Buy(conn, row[0], reason) # 呼叫 Buy 函式
+            result, reason = bfp.best_four_point() # 取得最佳四大買賣點 (以上次收盤時的資料為準)
+            if result: # 如果符合最佳四大買賣點
+                Buy(conn, allInfo, row[0], reason) # 呼叫 Buy 函式
                 print("\n")
 
         except Exception as e:
             print(e)
 
     # 確認當前持股資料
-    Check(conn)
+    Check(conn, allInfo)
 
     # 關閉 cursor 和連線
     cursor.close()
