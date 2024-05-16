@@ -13,6 +13,7 @@ load_dotenv()
 
 CHANNEL_ID = os.getenv("CHANNEL_ID")
 BOT_API_KEY = os.getenv("BOT_API_KEY")
+DATABASE_PASSWORD = os.getenv("DATABASE_PASSWORD")
 
 def ConnectToDatabase():
     print("ConnectToDatabase")
@@ -21,7 +22,7 @@ def ConnectToDatabase():
     conn = mysql.connector.connect(
         host="localhost",  # 主機名稱，本地資料庫通常是 localhost
         user="root",  # 使用者名稱，根據你的資料庫設定
-        password="Jason910904",  # 密碼，根據你的資料庫設定
+        password=DATABASE_PASSWORD,  # 密碼，根據你的資料庫設定
         database="STOCKDATABASE"  # 資料庫名稱，根據你的資料庫設定
     )
 

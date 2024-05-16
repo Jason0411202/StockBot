@@ -1,4 +1,11 @@
 # StockBot
+## 部署
+1. clone 專案到 server 上
+2. 使用 requirements.txt 安裝相依套件
+3. 建立 .env 檔案，內容如下
+4. 安裝 sql
+5. 執行檔案
+
 ## database schema
 ### STOCK (追蹤的股票)
 stockID name
