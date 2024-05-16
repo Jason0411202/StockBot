@@ -37,6 +37,13 @@ def AlterMyMoney(conn, newMoney):
 def GetStockPrice(stock_id, allInfo): # 回傳今日股價
     return allInfo[stock_id]['realtime']['latest_trade_price']
 
+def GetStockPrice_backup(stock_id): # 回傳今日股價
+    stock = twstock.Stock(stock_id) # 建立 Stock 物件
+    stockPrice = stock.price # 取得股價
+
+    # 回傳最後一個欄位
+    return stockPrice[-1]
+
 def CheckStockBuyTime(conn, stock_id): # 檢查是否在過去一個禮拜內買過
     nowTime=time.time()
     cursor = conn.cursor() # 建立 cursor 物件
@@ -73,6 +80,18 @@ def Buy(conn, allInfo, stock_id, reason):
     # 關閉 cursor
     cursor.close()
 
+def REMEMBER_SELL_HISTORY(stock_id, amount, buyPrice, sellPrice, profit, reason):
+    conn = ConnectToDatabase() # 呼叫 ConnectToDatabase 函式
+    cursor = conn.cursor() # 建立 cursor 物件
+
+    insertCommand = "INSERT INTO SELLHISTORY (stockID, amount, buyPrice, sellPrice, profit, reason) VALUES (%s, %s, %s, %s, %s, %s)"
+    cursor.execute(insertCommand, (stock_id, amount, buyPrice, sellPrice, profit, reason)) # 執行 SQL 插入
+    conn.commit() # 提交 SQL 插入
+
+    cursor.close() # 關閉 cursor
+    conn.close() # 關閉連線
+
+
 def Sell(conn, allInfo, stock_id, reason):
     myMoney=CheckMyMoney(conn) # 呼叫 CheckMyMoney 函式
     cursor = conn.cursor() # 建立 cursor 物件
@@ -93,6 +112,8 @@ def Sell(conn, allInfo, stock_id, reason):
         profit=(float(sellPrice)/float(buyPrice))*float(amount) - float(amount) # 計算損益
         profitRate=(float(sellPrice)/float(buyPrice))-1 # 計算損益率
         print("股號:", stock_id, ", 買入價格:", buyPrice, ", 賣出價格:", sellPrice, ", 已實現損益:", profit, ", 已實現損益率:", profitRate*100, "%", ", 賣出原因:", reason)
+
+        REMEMBER_SELL_HISTORY(stock_id, amount, buyPrice, sellPrice, profit, reason)
 
         final_profit+=profit
 
@@ -122,6 +143,19 @@ def Check(conn, allInfo):
         except Exception as e:
             print(e)
 
+    # 從 SELLHISTORY 取得歷史總損益
+    cursor = conn.cursor() # 建立 cursor 物件
+    cursor.execute("SELECT profit FROM SELLHISTORY") # 執行 SQL 查詢
+    rows = cursor.fetchall() # 擷取所有的資料
+    
+    # 計算總損益
+    total_profit=0
+    for row in rows:
+        total_profit+=row[0]
+    
+    print("歷史總損益:", total_profit)
+
+
 def RealTime_GET():
     cursor = conn.cursor() # 建立 cursor 物件
     cursor.execute("SELECT stockID FROM STOCK") # 執行 SQL 查詢
@@ -134,6 +168,7 @@ def RealTime_GET():
     return twstock.realtime.get(stockID_list)
 
 def MainProcess(conn):
+    ############################################################ 短線交易邏輯 ############################################################
     allInfo=RealTime_GET()
     print(allInfo)
 
@@ -145,7 +180,7 @@ def MainProcess(conn):
             stock = twstock.Stock(str(row[0])) # 建立 Stock 物件
             bfp = twstock.BestFourPoint(stock) # 建立 BestFourPoint 物件
             result, reason = bfp.best_four_point() # 取得最佳四大買賣點 (以上次收盤時的資料為準)
-            if not result: # 如果符合最佳四大買賣點
+            if not result and reason.count(',')>=1: # 如果符合最佳四大買賣點，且有兩個以上的理由
                 Sell(conn, allInfo, row[0], reason) # 呼叫 Sell 函式
                 print("\n")
 
@@ -157,7 +192,7 @@ def MainProcess(conn):
             stock = twstock.Stock(str(row[0])) # 建立 Stock 物件
             bfp = twstock.BestFourPoint(stock) # 建立 BestFourPoint 物件
             result, reason = bfp.best_four_point() # 取得最佳四大買賣點 (以上次收盤時的資料為準)
-            if result: # 如果符合最佳四大買賣點
+            if result and reason.count(',')>=1: # 如果符合最佳四大買賣點
                 Buy(conn, allInfo, row[0], reason) # 呼叫 Buy 函式
                 print("\n")
 
@@ -167,9 +202,11 @@ def MainProcess(conn):
     # 確認當前持股資料
     Check(conn, allInfo)
 
+    ############################################################ 短線交易邏輯 ############################################################
     # 關閉 cursor 和連線
     cursor.close()
     conn.close()
+
 
 conn=ConnectToDatabase() # 呼叫 ConnectToDatabase 函式
 MainProcess(conn) # 呼叫主程式

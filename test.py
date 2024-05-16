@@ -1,19 +1,18 @@
-import twstock
+import pandas as pd
+import requests
 
-# ('3231', '緯創'),
-# ('2330', '台積電'),
-# ('2317', '鴻海'),
-# ('2382', '廣達'),
-# ('2376', '技嘉'),
-# ('2454', '聯發科'),
-# ('3661', '世芯-KY'),
-# ('2603', '長榮'),
-# ('3443', '創意'),
-# ('2356', '英業達'),
-# ('2303', '聯電'),
-# ('2308', '台達電'),
-# ('00632R', '元大台灣50反1'),
-# ('1603', '華電');
+# 定義網址
+url = "https://www.twse.com.tw/rwd/zh/afterTrading/STOCK_DAY?date=20240401&stockNo=0050&response=csv"
 
-temp = twstock.realtime.get(['3231', '2330', '2317', '2382', '2376', '2454', '3661', '2603', '3443', '2356', '2303', '2308', '00632R', '1603'])
-print(temp)
+# 發送 GET 請求並取得回應
+response = requests.get(url)
+
+# 如果回應是成功的 (HTTP 狀態碼為 200)
+if response.status_code == 200:
+    # 使用 pandas 的 read_csv 函數讀取 CSV 檔案
+    df = pd.read_csv(url, encoding="big5")
+    
+    print(df)
+else:
+    # 如果回應不是成功的，印出錯誤訊息
+    print("無法取得資料。")

@@ -1,6 +1,7 @@
 CREATE Database STOCKDATABASE;
 USE STOCKDATABASE;
 
+
 CREATE TABLE STOCK (
     stockID VARCHAR(255) PRIMARY KEY,
     name VARCHAR(255) NOT NULL
@@ -22,6 +23,7 @@ VALUES
 ('00632R', '元大台灣50反1'),
 ('1603', '華電');
 
+
 CREATE TABLE MYSTOCK (
     id INT AUTO_INCREMENT PRIMARY KEY,
     stockID VARCHAR(255),
@@ -34,6 +36,20 @@ INSERT INTO MYSTOCK (stockID, amount, price, buytime, reason)
 VALUES
 ('2330', '5000', '750', '0', '測試'),
 ('2308', '4750', '100', '0', '測試');
+
+CREATE TABLE SELLHISTORY (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    stockID VARCHAR(255),
+    amount INT NOT NULL,
+    buyPrice DECIMAL(10, 2) NOT NULL,
+    sellPrice DECIMAL(10, 2) NOT NULL,
+    profit DECIMAL(10, 2) NOT NULL,
+    reason VARCHAR(255)
+);
+INSERT INTO SELLHISTORY (stockID, amount, buyPrice, sellPrice, profit, reason)
+VALUES
+('2330', '5000', '750', '800', '2500', '測試'),
+('2308', '4750', '100', '110', '-1000', '測試');
 
 CREATE TABLE MYDATA (
     name VARCHAR(255) PRIMARY KEY,
