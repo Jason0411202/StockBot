@@ -189,10 +189,10 @@ def RealTime_GET(conn):
     
     return twstock.realtime.get(stockID_list)
 
-@tasks.loop(seconds=1.0) #每60秒執行一次
+@tasks.loop(seconds=60.0) #每60秒執行一次
 async def Time_Check():
     # 如果現在時間不是 14:00 整，就不執行
-    if time.localtime().tm_hour != 1 or time.localtime().tm_min != 25:
+    if time.localtime().tm_hour != 14 or time.localtime().tm_min != 0:
         return
 
 
