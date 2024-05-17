@@ -17,106 +17,110 @@ DATABASE_HOST = os.getenv("DATABASE_HOST")
 DATABASE_PASSWORD = os.getenv("DATABASE_PASSWORD")
 
 def InitDatabase():
-    print("InitDatabase")
+    try:
+        print("InitDatabase")
 
-    conn = pymysql.connect(
-        host="backend",
-        user="root",
-        password="Jason910904"
-    )
+        conn = pymysql.connect(
+            host=DATABASE_HOST,
+            user="root",
+            password=DATABASE_PASSWORD,  # 密碼設置為空字符串
+        )
 
-    cursor = conn.cursor()
-    cursor.execute("DROP DATABASE IF EXISTS STOCKDATABASE") # 如果資料庫存在，就刪除
-    cursor.execute("CREATE Database STOCKDATABASE;") # 執行 SQL 腳本
+        cursor = conn.cursor()
+        cursor.execute("DROP DATABASE IF EXISTS STOCKDATABASE") # 如果資料庫存在，就刪除
+        cursor.execute("CREATE Database STOCKDATABASE;") # 執行 SQL 腳本
 
-    # 關閉游標和連接
-    cursor.close()
-    conn.close()
+        # 關閉游標和連接
+        cursor.close()
+        conn.close()
 
-    # 嘗試重新連接
-    # 連接到 pymysql 資料庫
-    conn = pymysql.connect(
-        host="backend",  # 主機名稱，本地資料庫通常是 localhost
-        user="root",  # 使用者名稱，根據你的資料庫設定
-        password="Jason910904",  # 密碼，根據你的資料庫設定
-        database="STOCKDATABASE"  # 資料庫名稱，根據你的資料庫設定
-    )
+        # 嘗試重新連接
+        # 連接到 pymysql 資料庫
+        conn = pymysql.connect(
+            host=DATABASE_HOST,  # 主機名稱，本地資料庫通常是 localhost
+            user="root",  # 使用者名稱，根據你的資料庫設定
+            password=DATABASE_PASSWORD,  # 密碼設置為空字符串
+            database="STOCKDATABASE"  # 資料庫名稱，根據你的資料庫設定
+        )
 
-    sql_commands = [
-        "CREATE DATABASE IF NOT EXISTS STOCKDATABASE;",
-        "USE STOCKDATABASE;",
-        """
-        CREATE TABLE IF NOT EXISTS STOCK (
-            stockID VARCHAR(255) PRIMARY KEY,
-            name VARCHAR(255) NOT NULL
-        );
-        """,
-        """
-        INSERT INTO STOCK (stockID, name) VALUES
-        ('3231', '緯創'),
-        ('2330', '台積電'),
-        ('2317', '鴻海'),
-        ('2382', '廣達'),
-        ('2376', '技嘉'),
-        ('2454', '聯發科'),
-        ('3661', '世芯-KY'),
-        ('2603', '長榮'),
-        ('3443', '創意'),
-        ('2356', '英業達'),
-        ('2303', '聯電'),
-        ('2308', '台達電'),
-        ('00632R', '元大台灣50反1'),
-        ('1603', '華電');
-        """,
-        """
-        CREATE TABLE IF NOT EXISTS MYSTOCK (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            stockID VARCHAR(255),
-            amount INT NOT NULL,
-            price DECIMAL(10, 2) NOT NULL,
-            buytime VARCHAR(255),
-            reason VARCHAR(255)
-        );
-        """,
-        """
-        INSERT INTO MYSTOCK (stockID, amount, price, buytime, reason) VALUES
-        ('2330', 5000, 750, '0', '測試'),
-        ('2308', 4750, 100, '0', '測試');
-        """,
-        """
-        CREATE TABLE IF NOT EXISTS SELLHISTORY (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            stockID VARCHAR(255),
-            amount INT NOT NULL,
-            buyPrice DECIMAL(10, 2) NOT NULL,
-            sellPrice DECIMAL(10, 2) NOT NULL,
-            profit DECIMAL(10, 2) NOT NULL,
-            reason VARCHAR(255)
-        );
-        """,
-        """
-        INSERT INTO SELLHISTORY (stockID, amount, buyPrice, sellPrice, profit, reason) VALUES
-        ('2330', 5000, 750, 800, 2500, '測試'),
-        ('2308', 4750, 100, 110, -1000, '測試');
-        """,
-        """
-        CREATE TABLE IF NOT EXISTS MYDATA (
-            name VARCHAR(255) PRIMARY KEY,
-            money INT NOT NULL
-        );
-        """,
-        """
-        INSERT INTO MYDATA (name, money) VALUES
-        ('Jason', 100000);
-        """
-    ]
-    cursor = conn.cursor() # 建立 cursor 物件
-    for command in sql_commands:
-        cursor.execute(command)
-        conn.commit()
-    cursor.close() # 關閉 cursor
+        sql_commands = [
+            "CREATE DATABASE IF NOT EXISTS STOCKDATABASE;",
+            "USE STOCKDATABASE;",
+            """
+            CREATE TABLE IF NOT EXISTS STOCK (
+                stockID VARCHAR(255) PRIMARY KEY,
+                name VARCHAR(255) NOT NULL
+            );
+            """,
+            """
+            INSERT INTO STOCK (stockID, name) VALUES
+            ('3231', '緯創'),
+            ('2330', '台積電'),
+            ('2317', '鴻海'),
+            ('2382', '廣達'),
+            ('2376', '技嘉'),
+            ('2454', '聯發科'),
+            ('3661', '世芯-KY'),
+            ('2603', '長榮'),
+            ('3443', '創意'),
+            ('2356', '英業達'),
+            ('2303', '聯電'),
+            ('2308', '台達電'),
+            ('00632R', '元大台灣50反1'),
+            ('1603', '華電');
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS MYSTOCK (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                stockID VARCHAR(255),
+                amount INT NOT NULL,
+                price DECIMAL(10, 2) NOT NULL,
+                buytime VARCHAR(255),
+                reason VARCHAR(255)
+            );
+            """,
+            """
+            INSERT INTO MYSTOCK (stockID, amount, price, buytime, reason) VALUES
+            ('2330', 5000, 750, '0', '測試'),
+            ('2308', 4750, 100, '0', '測試');
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS SELLHISTORY (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                stockID VARCHAR(255),
+                amount INT NOT NULL,
+                buyPrice DECIMAL(10, 2) NOT NULL,
+                sellPrice DECIMAL(10, 2) NOT NULL,
+                profit DECIMAL(10, 2) NOT NULL,
+                reason VARCHAR(255)
+            );
+            """,
+            """
+            INSERT INTO SELLHISTORY (stockID, amount, buyPrice, sellPrice, profit, reason) VALUES
+            ('2330', 5000, 750, 800, 2500, '測試'),
+            ('2308', 4750, 100, 110, -1000, '測試');
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS MYDATA (
+                name VARCHAR(255) PRIMARY KEY,
+                money INT NOT NULL
+            );
+            """,
+            """
+            INSERT INTO MYDATA (name, money) VALUES
+            ('Jason', 100000);
+            """
+        ]
+        cursor = conn.cursor() # 建立 cursor 物件
+        for command in sql_commands:
+            cursor.execute(command)
+            conn.commit()
+        cursor.close() # 關閉 cursor
 
-    return conn
+        return conn
+    except Exception as e:
+        print(e)
+        return None
 
 def CheckMyMoney(conn):
     cursor = conn.cursor() # 建立 cursor 物件
@@ -277,8 +281,8 @@ def RealTime_GET(conn):
 @tasks.loop(seconds=1.0) #每60秒執行一次
 async def Time_Check(conn):
     # 如果現在時間不是 14:00 整，就不執行
-    # if time.localtime().tm_hour != 14 or time.localtime().tm_min != 0:
-    #     return
+    if time.localtime().tm_hour != 14 or time.localtime().tm_min != 0:
+        return
 
     ############################################################ 短線交易邏輯 ############################################################
     allInfo=RealTime_GET(conn)
@@ -322,7 +326,12 @@ async def Time_Check(conn):
 async def on_ready(): #啟動成功時會呼叫
     channel = discord.utils.get(client.get_all_channels(), id=int(CHANNEL_ID))
     await channel.send("啟動")
-    conn=InitDatabase()
+    time.sleep(10) # 等待 database 準備好
+    while True:
+        conn=InitDatabase()
+        if conn != None:
+            break
+
     Time_Check.start(conn) #每60秒在背景執行Time_Check函式
 
 client.run(BOT_API_KEY) #啟動bot

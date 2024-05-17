@@ -1,10 +1,48 @@
 # StockBot
 ## 部署
-1. clone 專案到 server 上
-2. 使用 requirements.txt 安裝相依套件
-3. 建立 .env 檔案，內容如下
-4. 安裝 sql
-5. 執行檔案
+### 準備好 .env 檔案
+```shell
+CHANNEL_ID=discord 機器人傳送訊息的 discord 頻道 id
+BOT_API_KEY= discord 機器人的 api key
+DATABASE_HOST= 資料庫的 host 名稱
+DATABASE_PASSWORD= 資料庫的密碼
+```
+
+### 準備好 docker-compose.yml 檔案
+linux 版
+```yaml
+# 使用 3.3 版本的 docker-compose
+version: '3.3'
+
+# 定義服務，共有兩個服務，分別是 mysql_database 和 stockbot_short
+services:
+  mysql_database: # mysql_database 服務
+    image: mariadb:10.5  # 指定這個服務要使用的 image，為 mariadb:10.5 映像檔
+    container_name: ${DATABASE_HOST}  # 指定這個服務的 container name (很重要，會關係到前端如何連接後端)
+    environment: # 指定這個服務要使用的環境變數，這裡設定了 MYSQL_ROOT 的密碼
+      MYSQL_ROOT_PASSWORD: ${DATABASE_PASSWORD}
+    networks: # 指定這個服務要使用的 network
+      - "my_network"
+    restart: always  # 當服務停止時，自動重啟服務
+  stockbot_short: # stockbot_short 服務
+    image: jason0411202/stockbot-short-linux  # 指定這個服務要使用的 image
+    depends_on: # 指定這個服務依賴於哪些服務，mysql_database 服務啟動後才啟動 stockbot_short 服務
+      - mysql_database        # 指定 stockbot_short 服務依賴於 backend 服務，這樣能保證 stockbot_short 在 backend 服務啟動後才啟動
+    networks: # 指定這個服務要使用的 network
+      - "my_network"
+    env_file: # 將這個服務要使用的環境變數檔案傳給該容器
+      - .env
+    restart: always  # 當服務停止時，自動重啟服務
+
+networks:  # 定義 networks，目的是為了使容器之間可以互相連接
+  my_network:  # 定義一個名為 my_network 的 network
+    driver: bridge  # 使用 bridge network，功能是讓不同服務可以互相連接
+```
+
+## 執行指令
+```shell
+docker-compose up -d
+```
 
 ## database schema
 ### STOCK (追蹤的股票)
