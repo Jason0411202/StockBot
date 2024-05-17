@@ -1,0 +1,26 @@
+# 使用 3.8 版本的 docker-compose
+version: '3.8'
+
+# 定義服務，共有兩個服務，分別是 stockbot_short 和 backend
+services:
+  backend:
+    image: mariadb:10.5  # 指定這個服務要使用的 image
+    environment:
+      MYSQL_ROOT_PASSWORD: Jason910904
+    container_name: backend  # 指定這個服務的 container name (很重要，會關係到前端如何連接後端)
+    networks:
+      - "my_network"
+    ports:
+      - "3306:3306"  # 指定這個服務要映射的 port
+  stockbot_short:
+    image: stockbot_short  # 指定這個服務要使用的 image
+    depends_on:
+      - backend        # 指定 stockbot_short 服務依賴於 backend 服務，這樣能保證 stockbot_short 在 backend 服務啟動後才啟動
+    networks: 
+      - "my_network"      # 指定這個服務要使用的 network (很重要，會關係到前端如何連接後端)
+    env_file:
+      - .env  # 指定這個服務要使用的環境變數檔案
+
+networks:  # 定義 networks
+  my_network:  # 定義一個名為 my_network 的 network
+    driver: bridge  # 使用 bridge network，功能是讓不同服務可以互相連接

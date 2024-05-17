@@ -1,5 +1,5 @@
 import time
-import mysql.connector
+import pymysql
 import twstock
 import discord
 from discord.ext import tasks
@@ -13,25 +13,110 @@ load_dotenv()
 
 CHANNEL_ID = os.getenv("CHANNEL_ID")
 BOT_API_KEY = os.getenv("BOT_API_KEY")
+DATABASE_HOST = os.getenv("DATABASE_HOST")
 DATABASE_PASSWORD = os.getenv("DATABASE_PASSWORD")
 
-def ConnectToDatabase():
-    print("ConnectToDatabase")
+def InitDatabase():
+    print("InitDatabase")
 
-    # 連接到 MySQL 資料庫
-    conn = mysql.connector.connect(
-        host="localhost",  # 主機名稱，本地資料庫通常是 localhost
+    conn = pymysql.connect(
+        host="backend",
+        user="root",
+        password="Jason910904"
+    )
+
+    cursor = conn.cursor()
+    cursor.execute("DROP DATABASE IF EXISTS STOCKDATABASE") # 如果資料庫存在，就刪除
+    cursor.execute("CREATE Database STOCKDATABASE;") # 執行 SQL 腳本
+
+    # 關閉游標和連接
+    cursor.close()
+    conn.close()
+
+    # 嘗試重新連接
+    # 連接到 pymysql 資料庫
+    conn = pymysql.connect(
+        host="backend",  # 主機名稱，本地資料庫通常是 localhost
         user="root",  # 使用者名稱，根據你的資料庫設定
-        password=DATABASE_PASSWORD,  # 密碼，根據你的資料庫設定
+        password="Jason910904",  # 密碼，根據你的資料庫設定
         database="STOCKDATABASE"  # 資料庫名稱，根據你的資料庫設定
     )
 
-    if(conn.is_connected()):
-        print("Connect to STOCKDATABASE success")
-        return conn
-    else:
-        print("Connect to STOCKDATABASE failed")
-        exit()
+    sql_commands = [
+        "CREATE DATABASE IF NOT EXISTS STOCKDATABASE;",
+        "USE STOCKDATABASE;",
+        """
+        CREATE TABLE IF NOT EXISTS STOCK (
+            stockID VARCHAR(255) PRIMARY KEY,
+            name VARCHAR(255) NOT NULL
+        );
+        """,
+        """
+        INSERT INTO STOCK (stockID, name) VALUES
+        ('3231', '緯創'),
+        ('2330', '台積電'),
+        ('2317', '鴻海'),
+        ('2382', '廣達'),
+        ('2376', '技嘉'),
+        ('2454', '聯發科'),
+        ('3661', '世芯-KY'),
+        ('2603', '長榮'),
+        ('3443', '創意'),
+        ('2356', '英業達'),
+        ('2303', '聯電'),
+        ('2308', '台達電'),
+        ('00632R', '元大台灣50反1'),
+        ('1603', '華電');
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS MYSTOCK (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            stockID VARCHAR(255),
+            amount INT NOT NULL,
+            price DECIMAL(10, 2) NOT NULL,
+            buytime VARCHAR(255),
+            reason VARCHAR(255)
+        );
+        """,
+        """
+        INSERT INTO MYSTOCK (stockID, amount, price, buytime, reason) VALUES
+        ('2330', 5000, 750, '0', '測試'),
+        ('2308', 4750, 100, '0', '測試');
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS SELLHISTORY (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            stockID VARCHAR(255),
+            amount INT NOT NULL,
+            buyPrice DECIMAL(10, 2) NOT NULL,
+            sellPrice DECIMAL(10, 2) NOT NULL,
+            profit DECIMAL(10, 2) NOT NULL,
+            reason VARCHAR(255)
+        );
+        """,
+        """
+        INSERT INTO SELLHISTORY (stockID, amount, buyPrice, sellPrice, profit, reason) VALUES
+        ('2330', 5000, 750, 800, 2500, '測試'),
+        ('2308', 4750, 100, 110, -1000, '測試');
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS MYDATA (
+            name VARCHAR(255) PRIMARY KEY,
+            money INT NOT NULL
+        );
+        """,
+        """
+        INSERT INTO MYDATA (name, money) VALUES
+        ('Jason', 100000);
+        """
+    ]
+    cursor = conn.cursor() # 建立 cursor 物件
+    for command in sql_commands:
+        cursor.execute(command)
+        conn.commit()
+    cursor.close() # 關閉 cursor
+
+    return conn
 
 def CheckMyMoney(conn):
     cursor = conn.cursor() # 建立 cursor 物件
@@ -95,8 +180,7 @@ async def Buy(conn, allInfo, stock_id, reason):
     # 關閉 cursor
     cursor.close()
 
-def REMEMBER_SELL_HISTORY(stock_id, amount, buyPrice, sellPrice, profit, reason):
-    conn = ConnectToDatabase() # 呼叫 ConnectToDatabase 函式
+def REMEMBER_SELL_HISTORY(conn, stock_id, amount, buyPrice, sellPrice, profit, reason):
     cursor = conn.cursor() # 建立 cursor 物件
 
     insertCommand = "INSERT INTO SELLHISTORY (stockID, amount, buyPrice, sellPrice, profit, reason) VALUES (%s, %s, %s, %s, %s, %s)"
@@ -131,7 +215,7 @@ async def Sell(conn, allInfo, stock_id, reason):
         channel = discord.utils.get(client.get_all_channels(), id=int(CHANNEL_ID))
         await channel.send("股號: "+str(stock_id)+"\n買入價格: "+str(buyPrice)+"\n賣出價格: "+str(sellPrice)+"\n已實現損益: "+str(profit)+"\n已實現損益率: "+str(profitRate*100)+"%\n賣出原因: "+str(reason)+"\n---")
 
-        REMEMBER_SELL_HISTORY(stock_id, amount, buyPrice, sellPrice, profit, reason)
+        REMEMBER_SELL_HISTORY(conn, stock_id, amount, buyPrice, sellPrice, profit, reason)
 
         final_profit+=profit
 
@@ -190,14 +274,12 @@ def RealTime_GET(conn):
     
     return twstock.realtime.get(stockID_list)
 
-@tasks.loop(seconds=60.0) #每60秒執行一次
-async def Time_Check():
+@tasks.loop(seconds=1.0) #每60秒執行一次
+async def Time_Check(conn):
     # 如果現在時間不是 14:00 整，就不執行
-    if time.localtime().tm_hour != 14 or time.localtime().tm_min != 0:
-        return
+    # if time.localtime().tm_hour != 14 or time.localtime().tm_min != 0:
+    #     return
 
-
-    conn=ConnectToDatabase() # 呼叫 ConnectToDatabase 函式
     ############################################################ 短線交易邏輯 ############################################################
     allInfo=RealTime_GET(conn)
     print(allInfo)
@@ -235,12 +317,12 @@ async def Time_Check():
     ############################################################ 短線交易邏輯 ############################################################
     # 關閉 cursor 和連線
     cursor.close()
-    conn.close()
 
 @client.event
 async def on_ready(): #啟動成功時會呼叫
     channel = discord.utils.get(client.get_all_channels(), id=int(CHANNEL_ID))
     await channel.send("啟動")
-    Time_Check.start() #每60秒在背景執行Time_Check函式
+    conn=InitDatabase()
+    Time_Check.start(conn) #每60秒在背景執行Time_Check函式
 
 client.run(BOT_API_KEY) #啟動bot
