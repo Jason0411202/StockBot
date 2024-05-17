@@ -2,10 +2,10 @@
 ## 部署
 ### 準備好 .env 檔案
 ```shell
-CHANNEL_ID=discord 機器人傳送訊息的 discord 頻道 id
-BOT_API_KEY= discord 機器人的 api key
-DATABASE_HOST= 資料庫的 host 名稱
-DATABASE_PASSWORD= 資料庫的密碼
+CHANNEL_ID= "discord 機器人傳送訊息的 discord 頻道 id"
+BOT_API_KEY= "discord 機器人的 api key"
+DATABASE_HOST= "資料庫的 host 名稱"
+DATABASE_PASSWORD= "資料庫的密碼"
 ```
 
 ### 準備好 docker-compose.yml 檔案
