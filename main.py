@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 import time
 import pymysql
 import twstock
@@ -281,46 +282,58 @@ def RealTime_GET(conn):
 @tasks.loop(seconds=1.0) #每60秒執行一次
 async def Time_Check(conn):
     # 如果現在時間不是 14:00 整，就不執行
-    if time.localtime().tm_hour != 14 or time.localtime().tm_min != 0:
+    # 獲取當前UTC時間
+    utc_now = datetime.utcnow()
+    # 計算台灣時區時間（UTC+8）
+    taiwan_time = utc_now + timedelta(hours=8)
+    if taiwan_time.time().hour != 14 or taiwan_time.time().minute != 0:
         return
 
-    ############################################################ 短線交易邏輯 ############################################################
-    allInfo=RealTime_GET(conn)
-    print(allInfo)
-
-    cursor = conn.cursor() # 建立 cursor 物件
-    cursor.execute("SELECT * FROM STOCK") # 執行 SQL 查詢
-    rows = cursor.fetchall() # 擷取所有的資料
-    for row in rows: # 賣出股票
+    while True:
+        flag=0
         try:
-            stock = twstock.Stock(str(row[0])) # 建立 Stock 物件
-            bfp = twstock.BestFourPoint(stock) # 建立 BestFourPoint 物件
-            result, reason = bfp.best_four_point() # 取得最佳四大買賣點 (以上次收盤時的資料為準)
-            if not result and reason.count(',')>=1: # 如果符合最佳四大買賣點，且有兩個以上的理由
-                await Sell(conn, allInfo, row[0], reason) # 呼叫 Sell 函式
-                print("\n")
+            ############################################################ 短線交易邏輯 ############################################################
+            allInfo=RealTime_GET(conn)
+            print(allInfo)
 
-        except Exception as e:
-            print(e)
+            cursor = conn.cursor() # 建立 cursor 物件
+            cursor.execute("SELECT * FROM STOCK") # 執行 SQL 查詢
+            rows = cursor.fetchall() # 擷取所有的資料
+            for row in rows: # 賣出股票
+                try:
+                    stock = twstock.Stock(str(row[0])) # 建立 Stock 物件
+                    bfp = twstock.BestFourPoint(stock) # 建立 BestFourPoint 物件
+                    result, reason = bfp.best_four_point() # 取得最佳四大買賣點 (以上次收盤時的資料為準)
+                    if not result and reason.count(',')>=1: # 如果符合最佳四大買賣點，且有兩個以上的理由
+                        await Sell(conn, allInfo, row[0], reason) # 呼叫 Sell 函式
+                        print("\n")
 
-    for row in rows: # 買進股票
-        try:
-            stock = twstock.Stock(str(row[0])) # 建立 Stock 物件
-            bfp = twstock.BestFourPoint(stock) # 建立 BestFourPoint 物件
-            result, reason = bfp.best_four_point() # 取得最佳四大買賣點 (以上次收盤時的資料為準)
-            if result and reason.count(',')>=1: # 如果符合最佳四大買賣點
-                await Buy(conn, allInfo, row[0], reason) # 呼叫 Buy 函式
-                print("\n")
+                except Exception as e:
+                    print(e)
 
-        except Exception as e:
-            print(e)
+            for row in rows: # 買進股票
+                try:
+                    stock = twstock.Stock(str(row[0])) # 建立 Stock 物件
+                    bfp = twstock.BestFourPoint(stock) # 建立 BestFourPoint 物件
+                    result, reason = bfp.best_four_point() # 取得最佳四大買賣點 (以上次收盤時的資料為準)
+                    if result and reason.count(',')>=1: # 如果符合最佳四大買賣點
+                        await Buy(conn, allInfo, row[0], reason) # 呼叫 Buy 函式
+                        print("\n")
 
-    # 確認當前持股資料
-    await Check(conn, allInfo)
+                except Exception as e:
+                    print(e)
 
-    ############################################################ 短線交易邏輯 ############################################################
-    # 關閉 cursor 和連線
-    cursor.close()
+            # 確認當前持股資料
+            await Check(conn, allInfo)
+
+            # 關閉 cursor 和連線
+            cursor.close()
+            ############################################################ 短線交易邏輯 ############################################################
+        except:
+            flag+=1
+
+        if flag==0:
+            break
 
 @client.event
 async def on_ready(): #啟動成功時會呼叫

@@ -12,7 +12,7 @@ services:
       - "my_network"
     restart: always  # 當服務停止時，自動重啟服務
   stockbot_short: # stockbot_short 服務
-    image: stockbot_short  # 指定這個服務要使用的 image
+    image: jason0411202/stockbot-short-window  # 指定這個服務要使用的 image
     depends_on: # 指定這個服務依賴於哪些服務，mysql_database 服務啟動後才啟動 stockbot_short 服務
       - mysql_database        # 指定 stockbot_short 服務依賴於 backend 服務，這樣能保證 stockbot_short 在 backend 服務啟動後才啟動
     networks: # 指定這個服務要使用的 network
